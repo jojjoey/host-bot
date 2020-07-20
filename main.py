@@ -319,7 +319,7 @@ async def unrefer(ctx):
             list_referrer_name.remove(referrer_name)
             table_check.remove(Check.referrer_id == referrer_id)
             table_referral.update({"list_referrer_id":list_referrer_id, "list_referrer_name":list_referrer_name, "referrer_count":len(list_referrer_id)}, Check.member_id == member_id)
-            await ctx.send(f"{referrer.mention} has unreferred from <@{member_id}>")
+            await ctx.send(f"{referrer.mention} has unreferred <@{member_id}>")
             await ctx.message.add_reaction("✅")
         else:
             await ctx.send(f"{referrer.mention}, You cannot unrefer when you haven't referred to a friend yet.")

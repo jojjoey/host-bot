@@ -340,7 +340,7 @@ async def unrefer(ctx):
 # ------------------- leaderboard command ------------------ #
 
 @client.command(name='leaderboard',aliases=['lb','rank','leaderboards'])
-async def leaderboard(ctx, number=10):
+async def leaderboard(ctx, number=20):
     DB_REFERRAL = await get_db('referral.json')
     table_referral = DB_REFERRAL.table(str(ctx.guild.id))
 

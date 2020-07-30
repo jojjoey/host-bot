@@ -62,7 +62,7 @@ async def check_referral_rank(db, referrer_count, referral_rank, message, member
         db.update({"referral_rank": final_rank["name"]}, Query().member_id == member.id)
         await member.add_roles(role_new)
         notif_message = None
-        if referrer_count >= final_rank["limit"]:
+        if referrer_count >= ranks[referral_rank]["limit"]:
             notif_message = final_rank["good_message"]
         else:
             notif_message = final_rank["bad_message"]
@@ -75,7 +75,7 @@ async def check_referral_rank(db, referrer_count, referral_rank, message, member
 @client.event
 async def on_ready():
     print("Host bot is ready!")
-    await client.change_presence(activity = discord.Activity(name = "joins", type = 2))
+    await client.change_presence(activity = discord.Activity(name = "referrals", type = 2))
 
 @client.event
 async def on_guild_join(guild):

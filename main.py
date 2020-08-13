@@ -95,7 +95,6 @@ async def on_member_remove(member):
     Check = Query()
     Referral = Query()
     referrer_id = member.id
-    referrer_name = member.name
     check_row = table_check.search(Check.referrer_id == referrer_id)
 
     if (len(check_row) == 1):
@@ -103,12 +102,10 @@ async def on_member_remove(member):
         member_name = check_row[0]["member_name"]
         referral_row = table_referral.search(Referral.member_id == member_id)
         list_referrer_id = referral_row[0]["list_referrer_id"]
-        list_referrer_name = referral_row[0]["list_referrer_name"]
         list_referrer_id.remove(referrer_id)
-        list_referrer_name.remove(referrer_name)
         table_check.remove(Check.referrer_id == referrer_id)
-        table_referral.update({"list_referrer_id":list_referrer_id, "list_referrer_name":list_referrer_name, "referrer_count":len(list_referrer_id)}, Check.member_id == member_id)
-        print(f"Referrer {referrer_name} has been removed from {member_name} referral (left server)")
+        table_referral.update({"list_referrer_id":list_referrer_id,"referrer_count":len(list_referrer_id)}, Check.member_id == member_id)
+        print(f"Referrer {referrer_id} has been removed from {member_name} referral (left server)")
 
 @client.event
 async def on_message(message):
@@ -249,12 +246,9 @@ async def referral(ctx, member : discord.User):
             if (len(referral_row) == 1) and (len(check_row) == 0):
                 print(f"Member {member} already exist in referral.json. {referrer} has referred to {member}")
                 list_referrer_id = referral_row[0]["list_referrer_id"]
-                list_referrer_name = referral_row[0]["list_referrer_name"]
                 if (referrer.id not in list_referrer_id):
                     list_referrer_id.append(referrer.id)
-                    list_referrer_name.append(referrer.name)
                     table_referral.update({"list_referrer_id":list_referrer_id}, Member.member_id == member.id)
-                    table_referral.update({"list_referrer_name":list_referrer_name}, Member.member_id == member.id)
                     table_referral.update({'referrer_count':len(set(list_referrer_id))}, Member.member_id == member.id)
                     table_check.insert(dict(referrer_id=referrer.id, referrer_name=referrer.name, member_id=member.id, member_name=member.name))
                     await ctx.message.add_reaction("✅")
@@ -263,7 +257,7 @@ async def referral(ctx, member : discord.User):
                 referral_rank = "Unranked"
                 referrer_count = 1
                 table_referral.insert(dict(member_id=member.id,member_name=member.name,referral_rank=referral_rank,list_referrer_id=[referrer.id],
-                                            list_referrer_name=[referrer.name],referrer_count=referrer_count))
+                                            referrer_count=referrer_count))
                 table_check.insert(dict(referrer_id=referrer.id, referrer_name=referrer.name, member_id=member.id, member_name=member.name))
                 await ctx.message.add_reaction("✅")
             elif (len(check_row) == 1):
@@ -303,7 +297,6 @@ async def unrefer(ctx):
 
     referrer = ctx.author
     referrer_id = referrer.id
-    referrer_name = referrer.name
     check_row = table_check.search(Check.referrer_id == referrer_id)
     config_row = DB_CONFIG.search(Config.server_id == ctx.guild.id)
     referral_channel_id = config_row[0]["referral_channel_id"]
@@ -314,11 +307,9 @@ async def unrefer(ctx):
             member_id = check_row[0]["member_id"]
             referral_row = table_referral.search(Referral.member_id == member_id)
             list_referrer_id = referral_row[0]["list_referrer_id"]
-            list_referrer_name = referral_row[0]["list_referrer_name"]
             list_referrer_id.remove(referrer_id)
-            list_referrer_name.remove(referrer_name)
             table_check.remove(Check.referrer_id == referrer_id)
-            table_referral.update({"list_referrer_id":list_referrer_id, "list_referrer_name":list_referrer_name, "referrer_count":len(list_referrer_id)}, Check.member_id == member_id)
+            table_referral.update({"list_referrer_id":list_referrer_id, "referrer_count":len(list_referrer_id)}, Check.member_id == member_id)
             await ctx.send(f"{referrer.mention} has unreferred <@{member_id}>")
             await ctx.message.add_reaction("✅")
         else:

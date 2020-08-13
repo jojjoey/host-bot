@@ -13,69 +13,61 @@ TOKEN = os.environ.get('HOST_BOT_TOKEN')
 
 client.remove_command("help")       # Remove the default help command
 
-ranks = {
-    "Companion": {
-        "name": "Companion",
-        "limit": 20,
-        "good_message": "Fantastic! {discord-id}, you are now a `Companion`! How does it feel to be at the top? "
-                        "But don't let this stop you though. The more, the merrier!",
-        "bad_message": None
-    },
-    "Friendly": {
-        "name": "Friendly",
-        "limit": 15,
-        "good_message": "Fantastic! {discord-id}, you are now a `Friendly`! How does it feel to be at the top? "
-                        "But don't let this stop you though. The more, the merrier!",
-        "bad_message": "Whoopsies! {discord-id}, looks like someone you've invited left. Sorry to say this but "
-                        "we'll have to knock you down a rank. Don't worry, you can always make more friends!"
-
-    },
-    "Buddy": {
-        "name": "Buddy",
-        "limit": 5,
-        "good_message": "Congratulations! {discord-id}, you are now a `Buddy`! Feel's good to... _buddy up_ with someone, huh?",
-        "bad_message": "Oh, {discord-id}, looks like someone you invited left. Don't let this discourage you"
-    },
-    "Unranked": {
-        "name": "Unranked",
-        "limit": 0,
-        "good_message": None,
-        "bad_message": "Well, {discord-id}, it looks like you're back to square one. It's fine! There's always next time"
-    }
-}
-
 async def get_db(filename):
     return TinyDB(filename, indent=4, separators=(',', ': '))
 
-async def check_referral_rank(db, referrer_count, referral_rank, message, member):
-    final_rank = None
-    for rank in ranks:
-        if referrer_count >= ranks[rank]["limit"]:
-            final_rank = ranks[rank]
-            break
-    
-    if referral_rank != final_rank["name"]:
-        role_old = discord.utils.get(message.guild.roles, name=referral_rank)
-        if role_old is not None:
+async def check_referral_rank(db,n_people,referral_rank,message,member):
+    # Rank Up
+    if (n_people >= 20) and (referral_rank != "Companion"): # If referrers count is 20 or more and rank is not Companion
+        try: # try to get role and removes it if there is existing role
+            role_old = discord.utils.get(message.guild.roles, name=referral_rank)
             await member.remove_roles(role_old)
-        role_new = discord.utils.get(message.guild.roles, name=final_rank["name"])
-        db.update({"referral_rank": final_rank["name"]}, Query().member_id == member.id)
+        except:
+            pass
+        role_new = discord.utils.get(message.guild.roles, name="Companion")
+        db.update({"referral_rank":"Companion"}, Query().member_id == member.id)
         await member.add_roles(role_new)
-        notif_message = None
-        if referrer_count >= ranks[referral_rank]["limit"]:
-            notif_message = final_rank["good_message"]
+        await message.channel.send(f"Fantastic! {member.mention}, you are now a `Companion`! How does it feel to be at the top? But don't let this stop you though. The more, the merrier!")
+    elif (n_people >= 15) and (n_people < 20) and (referral_rank != "Friendly"): # If referrers count is in between 15 and 19 and rank is not Friendly
+        try: # try to get role and removes it if there is existing role
+            role_old = discord.utils.get(message.guild.roles, name=referral_rank)
+            await member.remove_roles(role_old)
+        except:
+            pass
+        role_new = discord.utils.get(message.guild.roles, name="Friendly")
+        db.update({"referral_rank":"Friendly"}, Query().member_id == member.id)
+        await member.add_roles(role_new)
+        if referral_rank == "Companion":
+            await message.channel.send(f"Whoopsies! {member.mention}, looks like someone you've invited left. Sorry to say this but we'll have to knock you down a rank. Don't worry, you can always make more friends!")
         else:
-            notif_message = final_rank["bad_message"]
-        
-        notif_message = notif_message.replace("{discord-id}", member.mention)
-        
-        if message is not None:
-            await message.channel.send(notif_message)
+            await message.channel.send(f"Amazing! {member.mention}, you are officially... `Friendly`! Literally. Here's a special role just for you!")
+    elif (n_people >= 5) and (n_people < 15) and (referral_rank != "Buddy"): # If referrers count is in between 5 and 14 and rank is not Buddy
+        try: # try to get role and removes it if there is existing role
+            role_old = discord.utils.get(message.guild.roles, name=referral_rank)
+            await member.remove_roles(role_old)
+        except:
+            pass
+        role_new = discord.utils.get(message.guild.roles, name="Buddy")
+        db.update({"referral_rank":"Buddy"}, Query().member_id == member.id)
+        await member.add_roles(role_new)
+        if referral_rank in ["Friendly","Companion"]:
+            await message.channel.send(f"Oh, {member.mention}, looks like someone you invited left. Don't let this discourage you")
+        else:
+            await message.channel.send(f"Congratulations! {member.mention}, you are now a `Buddy`! Feel's good to... _buddy up_ with someone, huh?")
+    elif (n_people < 5) and (referral_rank != "Unranked"): # If referrer count is below 5 and rank is not Unranked
+        try: # try to get role and removes it if there is existing role
+            role_old = discord.utils.get(message.guild.roles, name=referral_rank)
+            await member.remove_roles(role_old)
+        except:
+            pass
+        db.update({"referral_rank":"Unranked"}, Query().member_id == member.id)
+        if referral_rank in ["Buddy","Friendly","Companion"]:
+            await message.channel.send(f"Well, {member.mention}, it looks like you're back to square one. It's fine! There's always next time")
 
 @client.event
 async def on_ready():
     print("Host bot is ready!")
-    await client.change_presence(activity = discord.Activity(name = "referrals", type = 2))
+    await client.change_presence(activity = discord.Activity(name = "joins", type = 2))
 
 @client.event
 async def on_guild_join(guild):
@@ -126,7 +118,7 @@ async def on_message(message):
         row = table_referral.search(Member.member_id == member.id)[0]
         referrer_count = row["referrer_count"]
         referral_rank = row["referral_rank"]
-        await check_referral_rank(db=table_referral,referrer_count=referrer_count,referral_rank=referral_rank,message=message,member=member)
+        await check_referral_rank(db=table_referral,n_people=referrer_count,referral_rank=referral_rank,message=message,member=member)
     except:
         pass
 
@@ -287,6 +279,7 @@ async def referral_error(ctx, error):
         await ctx.send(f"Well, {member.mention}, looks like you didn't mention a friend. Be sure to include their username!")
     elif isinstance(error, commands.MissingRole):
         await ctx.send(f"```{error}```")
+    await ctx.send(error)
 
 @commands.has_role('Member')
 @client.command('unrefer')
@@ -331,7 +324,7 @@ async def unrefer(ctx):
 # ------------------- leaderboard command ------------------ #
 
 @client.command(name='leaderboard',aliases=['lb','rank','leaderboards'])
-async def leaderboard(ctx, number=20):
+async def leaderboard(ctx):
     DB_REFERRAL = await get_db('referral.json')
     table_referral = DB_REFERRAL.table(str(ctx.guild.id))
 
@@ -339,11 +332,11 @@ async def leaderboard(ctx, number=20):
     list_leaderboard = sorted(list_all_referrals, key=lambda k: k['Referrals'], reverse=True)
 
     response = ""
-    if len(list_leaderboard) <= number:
+    if len(list_leaderboard) <= 10:
         for i in range(0,len(list_leaderboard)):
             response =  response + f"#**{i+1}** Member : **{list_leaderboard[i]['Member']}**, Referrals : **{list_leaderboard[i]['Referrals']}**, Rank : **{list_leaderboard[i]['Rank']}** \n"
     else:
-        for i in range(0,number):
+        for i in range(0,10):
             response =  response + f"#**{i+1}** Member : **{list_leaderboard[i]['Member']}**, Referrals : **{list_leaderboard[i]['Referrals']}**, Rank : **{list_leaderboard[i]['Rank']}** \n"
 
     embed = discord.Embed(title=f"**{ctx.guild.name}'s Referral Leaderboard**",
@@ -397,36 +390,5 @@ async def info(ctx):
         await ctx.send(f"Look's like {member.mention} doesn't have any refferals so far. Got any friends you can bring over?")
 
 # --------------------- End Info command --------------------- #
-
-# ----------------------- guide command ---------------------- #
-
-@client.command('guide')
-async def guide(ctx):
-    DB_CONFIG = await get_db('config.json')
-
-    Config = Query()
-
-    config_row = DB_CONFIG.search(Config.server_id == ctx.guild.id)
-    referral_channel_id = config_row[0]["referral_channel_id"]
-    channel = client.get_channel(referral_channel_id)
-    response = '''
-Hello, I am **Host Bot**. Your **_go-to_ referral partner**.
-
-I am here to help you to count how many people referred to you. In order to refer to someone you need to use `{0}referral @Member` on {1}.
-Here is how it works:
-```
-1. You have to be in referral channel to use {0}referral @Member command
-2. Once you typed that, the member you mentioned gains 1 number of referrals count
-3. You can only use {0}referral @Member command once. So, use it wisely to refer to your friend who invited you.
-4. If you want to check your referral info, type {0}info
-5. You can unrefer by using {0}unrefer
-```
-I am looking forward to work with you. Please type `{0}help` to see all commands. If you want to know more about a command, type `{0}help <command_name>`.
-
-Thank you!
-    '''.format(BOT_PREFIX[0],channel.mention)
-    await ctx.send(response)
-
-# -------------------- End guide command --------------------- #
 
 client.run(TOKEN)

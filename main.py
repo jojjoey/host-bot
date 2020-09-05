@@ -219,6 +219,8 @@ async def update_rank(ctx):
         referral_rank = row["referral_rank"]
         member_id = row["member_id"]
         member = ctx.guild.get_member(member_id)
+        if member is None:
+            continue
         if referral_rank in ["Buddy", "Friendly", "Companion"]:
             role = discord.utils.get(ctx.message.guild.roles, name=referral_rank)
             await member.add_roles(role)

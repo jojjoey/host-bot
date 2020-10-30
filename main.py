@@ -10,7 +10,7 @@ load_dotenv()
 
 client = HostBot(
     intents=discord.Intents(guilds=True, members=True, presences=True, messages=True, reactions=True),
-    command_prefix="!h ", 
+    command_prefix=("!h ", "!host "), 
     case_insensitive=True
 )
 

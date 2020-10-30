@@ -47,13 +47,12 @@ class Member(commands.Cog):
         table_users = db_users.table(str(referrer.guild.id))
 
         referrals_data = table_referral.search(Query().referrer_id == referrer.id)
-        users_data = table_users.search(Query().member_id == referrer.id)
-        if len(referrals_data) == 0 and len(users_data) == 0:
+        table_users.remove(Query().member_id == referrer.id)
+        if len(referrals_data) == 0:
             return
         referral_row = referrals_data[0]
         member = await member.guild.fetch_member(referral_row['member_id'])
         table_referral.remove(Query().referrer_id == referrer.id)
-        table_users.remove(Query().member_id == referrer.id)
 
         referral_count = len(table_referral.search(Query().member_id == member.id))
         table_users.update({"member_name":str(member), "referral_count":referral_count}, Query().member_id == member.id)

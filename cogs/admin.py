@@ -77,7 +77,7 @@ class Admin(commands.Cog):
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
     @commands.command(name="updaterank", description="Update all referral ranks", usage="updaterank")
-    async def updaterank(self, ctx, *, msg:str=None):
+    async def updaterank(self, ctx):
         db_referrals = util.get_db('db_referrals.json')
         db_users = util.get_db('db_users.json')
         table_referral = db_referrals.table(str(ctx.guild.id))
@@ -108,7 +108,7 @@ class Admin(commands.Cog):
 
             role = discord.utils.get(ctx.guild.roles, name=role_name)
             if role is not None:
-                await ctx.author.add_roles(role)
+                await member.add_roles(role)
 
         response = f"Successfully updated {len(table_referral)} referrals row and {len(table_users)} users row"
         self.bot.logger.info(f"{ctx.author} has {response}")

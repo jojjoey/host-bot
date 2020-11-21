@@ -4,6 +4,8 @@ import util
 from discord.ext import commands
 from tinydb import Query
 
+ROLES = ["Unranked", "Buddy", "Friendly", "Companion"]
+
 class Admin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -63,6 +65,13 @@ class Admin(commands.Cog):
                 self.bot.logger.info(f"Removed data for member ID: {member_id}")
                 continue
             role_name = row['referral_rank']
+            table_users.update({"member_name":str(member)})
+            other_roles = [role for role in ROLES if role != role_name]
+            for other_role_name in other_roles:
+                other_role = discord.utils.get(member.roles, name=other_role_name)
+                if other_role is not None:
+                    await member.remove_roles(other_role)
+
             role = discord.utils.get(ctx.guild.roles, name=role_name)
             if role is not None:
                 await ctx.author.add_roles(role)

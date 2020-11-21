@@ -223,7 +223,7 @@ class Member(commands.Cog):
             leaderboard_list = leaderboard_list[:number]
 
         for idx, val in enumerate(leaderboard_list):
-            response =  response + f"#**{idx+1}** Member : **{val['member_name']}**, Referrals : **{val['referral_count']}**, Referral Rank: **{val['referral_rank']}**\n"
+            response =  response + f"#**{idx+1}** Member : **{val['member_name']}** | Referrals : **{val['referral_count']}** | Rank: **{val['referral_rank']}**\n"
         
         embed = discord.Embed(title=f"**{ctx.guild.name}'s Referral Leaderboard**",
                                 description=response,

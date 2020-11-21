@@ -99,7 +99,7 @@ class Admin(commands.Cog):
                     referral_rank = rank['name']
                     break
             table_users.update({"member_name":str(member), "referral_count": referral_count, "referral_rank": referral_rank}, Query().member_id == member_id)
-            role_name = row['referral_rank']
+            role_name = referral_rank
             other_roles = [rank['name'] for rank in RANKS if rank != role_name]
             for other_role_name in other_roles:
                 other_role = discord.utils.get(member.roles, name=other_role_name)

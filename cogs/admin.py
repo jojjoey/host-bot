@@ -44,5 +44,32 @@ class Admin(commands.Cog):
         embed = discord.Embed(description=msg, color=discord.Color.blue())
         await ctx.send(embed=embed)
 
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    @commands.command(name="updaterank", description="Update all referral ranks", usage="updaterank")
+    async def updaterank(self, ctx, *, msg:str=None):
+        db_referrals = util.get_db('db_referrals.json')
+        db_users = util.get_db('db_users.json')
+        table_referral = db_referrals.table(str(ctx.guild.id))
+        table_users = db_users.table(str(ctx.guild.id))
+
+        for row in table_users.all():
+            member_id = row['member_id']
+            member = await ctx.guild.fetch_member(member_id)
+            if member is None:
+                table_users.remove(Query().member_id == member_id)
+                table_referral.remove((Query().member_id == member_id) & (Query().referrer_id == member_id))
+                self.bot.logger.info(f"Removed data for member ID: {member_id}")
+                continue
+            role_name = row['referral_rank']
+            role = discord.utils.get(ctx.guild.roles, name=role_name)
+            if role is not None:
+                await ctx.author.add_roles(role)
+
+        response = f"Successfully updated {len(table_referral)} referrals row and {len(table_users)} users row"
+        self.bot.logger.info(f"{ctx.author} has {response}")
+        embed = util.log_embed(response, "success")
+        await ctx.send(embed=embed)
+
 def setup(bot):
     bot.add_cog(Admin(bot))

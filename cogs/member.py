@@ -57,20 +57,20 @@ class Member(commands.Cog):
         referral_count = len(table_referral.search(Query().member_id == member.id))
         table_users.update({"member_name":str(member), "referral_count":referral_count}, Query().member_id == member.id)
         ranks_ascending = sorted(RANKS, key=lambda k: k['limit'])
-        for rank in ranks_ascending:
-            if referral_count < rank['limit']:
+        for idx, rank in enumerate(ranks_ascending):
+            if idx + 1 == len(ranks_ascending):
                 continue
-            if rank['name'] == "Unranked":
-                continue
-            role_names = [row['name'] for row in RANKS if row['name'] != rank['name']]
-            for role_name in role_names:
-                if discord.utils.get(member.roles, name=role_name) is not None:
-                    await member.remove_roles(discord.utils.get(member.roles, name=role_name))
-            role = discord.utils.get(member.guild.roles, name=rank['name'])
-            if role is not None:
-                await member.add_roles(role)
+            if referral_count >= rank['limit'] and referral_count < RANKS[idx+1]['limit']:
+                role_names = [row['name'] for row in RANKS if row['name'] != rank['name']]
+                for role_name in role_names:
+                    if discord.utils.get(member.roles, name=role_name) is not None:
+                        await member.remove_roles(discord.utils.get(member.roles, name=role_name))
+
                 table_users.update({"referral_rank":rank['name']}, Query().member_id == member.id)
-                break
+                role = discord.utils.get(member.guild.roles, name=rank['name'])
+                if role is not None:
+                    await member.add_roles(role)
+                    break
         self.bot.logger.info(f"{referrer} has unreferred {member} (leave)")
 
     @commands.command(name="refer", description="Refer to a friend who invited you", usage="refer @user", aliases=["referral","r"])
@@ -129,21 +129,21 @@ class Member(commands.Cog):
         referral_count = len(table_referral.search(Query().member_id == member.id))
         if len(users_data) == 1:
             table_users.update({"member_name":str(member), "referral_count":referral_count}, Query().member_id == member.id)
-            ranks_descending = sorted(RANKS, key=lambda k: k['limit'], reverse=True)
-            for rank in ranks_descending:
-                if referral_count < rank['limit']:
-                    continue
-                if rank['name'] == "Unranked":
-                    continue
-                role_names = [row['name'] for row in RANKS if row['name'] != rank['name']]
+            try:
+                rank_name = next(rank['name'] for rank in RANKS if 5 == rank['limit'])
+            except StopIteration:
+                rank_name = None
+            
+            if rank_name is not None:
+                role_names = [row['name'] for row in RANKS if row['name'] != rank_name]
                 for role_name in role_names:
                     if discord.utils.get(member.roles, name=role_name) is not None:
                         await member.remove_roles(discord.utils.get(member.roles, name=role_name))
-                role = discord.utils.get(ctx.guild.roles, name=rank['name'])
+
+                table_users.update({"referral_rank":rank_name}, Query().member_id == member.id)
+                role = discord.utils.get(ctx.guild.roles, name=rank_name)
                 if role is not None:
                     await member.add_roles(role)
-                    table_users.update({"referral_rank":rank['name']}, Query().member_id == member.id)
-                    break
         else:
             table_users.insert(dict(member_id=member.id, member_name=str(member), referral_count=1, referral_rank="Unranked"))
         self.bot.logger.info(f"Member {referrer} has referred to {member}")
@@ -161,25 +161,28 @@ class Member(commands.Cog):
             return
         referral_row = referrals_data[0]
         member = await ctx.guild.fetch_member(referral_row['member_id'])
+        if member is None:
+            return
         table_referral.remove(Query().referrer_id == ctx.author.id)
 
         referral_count = len(table_referral.search(Query().member_id == member.id))
         table_users.update({"member_name":str(member), "referral_count":referral_count}, Query().member_id == member.id)
         ranks_ascending = sorted(RANKS, key=lambda k: k['limit'])
-        for rank in ranks_ascending:
-            if referral_count < rank['limit']:
+        for idx, rank in enumerate(ranks_ascending):
+            if idx + 1 == len(ranks_ascending):
                 continue
-            if rank['name'] == "Unranked":
-                continue
-            role_names = [row['name'] for row in RANKS if row['name'] != rank['name']]
-            for role_name in role_names:
-                if discord.utils.get(member.roles, name=role_name) is not None:
-                    await member.remove_roles(discord.utils.get(member.roles, name=role_name))
-            role = discord.utils.get(ctx.guild.roles, name=rank['name'])
-            if role is not None:
-                await member.add_roles(role)
+            if referral_count >= rank['limit'] and referral_count < RANKS[idx+1]['limit']:
+                role_names = [row['name'] for row in RANKS if row['name'] != rank['name']]
+                for role_name in role_names:
+                    role = discord.utils.get(member.roles, name=role_name)
+                    if role is not None:
+                        await member.remove_roles(role)
+
                 table_users.update({"referral_rank":rank['name']}, Query().member_id == member.id)
-                break
+                role = discord.utils.get(ctx.guild.roles, name=rank['name'])
+                if role is not None:
+                    await member.add_roles(role)
+                    break
         response = f"{ctx.author} has unreferred {member}"
         embed = util.log_embed(response, "success")
         await ctx.send(embed=embed)

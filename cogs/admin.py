@@ -65,7 +65,7 @@ class Admin(commands.Cog):
                 self.bot.logger.info(f"Removed data for member ID: {member_id}")
                 continue
             role_name = row['referral_rank']
-            table_users.update({"member_name":str(member)})
+            table_users.update({"member_name":str(member)}, Query().member_id == member_id)
             other_roles = [role for role in ROLES if role != role_name]
             for other_role_name in other_roles:
                 other_role = discord.utils.get(member.roles, name=other_role_name)

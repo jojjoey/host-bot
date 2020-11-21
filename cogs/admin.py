@@ -4,7 +4,35 @@ import util
 from discord.ext import commands
 from tinydb import Query
 
-ROLES = ["Unranked", "Buddy", "Friendly", "Companion"]
+RANKS = [
+    {
+        "name": "Companion",
+        "limit": 20,
+        "good_message": "Fantastic! @user, you are now a `Companion`! How does it feel to be at the top? "
+                        "But don't let this stop you though. The more, the merrier!",
+        "bad_message": None
+    },
+    {
+        "name": "Friendly",
+        "limit": 15,
+        "good_message": "Fantastic! @user, you are now a `Friendly`! How does it feel to be at the top? "
+                        "But don't let this stop you though. The more, the merrier!",
+        "bad_message": "Whoopsies! @user, looks like someone you've invited left. Sorry to say this but "
+                        "we'll have to knock you down a rank. Don't worry, you can always make more friends!"
+    },
+    {
+        "name": "Buddy",
+        "limit": 5,
+        "good_message": "Congratulations! @user, you are now a `Buddy`! Feel's good to... _buddy up_ with someone, huh?",
+        "bad_message": "Oh, @user, looks like someone you invited left. Don't let this discourage you"
+    },
+    {
+        "name": "Unranked",
+        "limit": 0,
+        "good_message": None,
+        "bad_message": "Well, @user, it looks like you're back to square one. It's fine! There's always next time"
+    }
+]
 
 class Admin(commands.Cog):
     def __init__(self, bot):
@@ -64,10 +92,15 @@ class Admin(commands.Cog):
                 table_referral.remove((Query().member_id == member_id) & (Query().referrer_id == member_id))
                 self.bot.logger.info(f"Removed data for member ID: {member_id}")
                 continue
-            role_name = row['referral_rank']
             referral_count = len(table_referral.search(Query().member_id == member_id))
-            table_users.update({"member_name":str(member), "referral_count": referral_count}, Query().member_id == member_id)
-            other_roles = [role for role in ROLES if role != role_name]
+            ranks_ascending = sorted(RANKS, key=lambda k: k['limit'], reverse=True)
+            for rank in ranks_ascending:
+                if referral_count >= rank['limit']:
+                    referral_rank = rank['name']
+                    break
+            table_users.update({"member_name":str(member), "referral_count": referral_count, "referral_rank": referral_rank}, Query().member_id == member_id)
+            role_name = row['referral_rank']
+            other_roles = [rank['name'] for rank in RANKS if rank != role_name]
             for other_role_name in other_roles:
                 other_role = discord.utils.get(member.roles, name=other_role_name)
                 if other_role is not None:

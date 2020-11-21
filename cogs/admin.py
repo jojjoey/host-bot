@@ -55,8 +55,9 @@ class Admin(commands.Cog):
 
         for row in table_users.all():
             member_id = row['member_id']
-            member = await ctx.guild.fetch_member(member_id)
-            if member is None:
+            try:
+                member = await ctx.guild.fetch_member(member_id)
+            except discord.ext.commands.errors.CommandInvokeError:
                 table_users.remove(Query().member_id == member_id)
                 table_referral.remove((Query().member_id == member_id) & (Query().referrer_id == member_id))
                 self.bot.logger.info(f"Removed data for member ID: {member_id}")

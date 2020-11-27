@@ -60,7 +60,7 @@ class Member(commands.Cog):
         for idx, rank in enumerate(ranks_ascending):
             if idx + 1 == len(ranks_ascending):
                 continue
-            if referral_count >= rank['limit'] and referral_count < RANKS[idx+1]['limit']:
+            if referral_count >= rank['limit'] and referral_count < ranks_ascending[idx+1]['limit']:
                 role_names = [row['name'] for row in RANKS if row['name'] != rank['name']]
                 for role_name in role_names:
                     if discord.utils.get(member.roles, name=role_name) is not None:
@@ -130,7 +130,7 @@ class Member(commands.Cog):
         if len(users_data) == 1:
             table_users.update({"member_name":str(member), "referral_count":referral_count}, Query().member_id == member.id)
             try:
-                rank_name = next(rank['name'] for rank in RANKS if 5 == rank['limit'])
+                rank_name = next(rank['name'] for rank in RANKS if referral_count == rank['limit'])
             except StopIteration:
                 rank_name = None
             
@@ -171,7 +171,7 @@ class Member(commands.Cog):
         for idx, rank in enumerate(ranks_ascending):
             if idx + 1 == len(ranks_ascending):
                 continue
-            if referral_count >= rank['limit'] and referral_count < RANKS[idx+1]['limit']:
+            if referral_count >= rank['limit'] and referral_count < ranks_ascending[idx+1]['limit']:
                 role_names = [row['name'] for row in RANKS if row['name'] != rank['name']]
                 for role_name in role_names:
                     role = discord.utils.get(member.roles, name=role_name)
